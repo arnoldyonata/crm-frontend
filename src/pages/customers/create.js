@@ -23,24 +23,41 @@ const Create = () => {
     const [customerTitleId, setCustomerTitleId] = useState('')
     const [accountCategoryId, setAccountCategoryId] = useState(1)
     const [birthDate, setBirthDate] = useState('')
+    const [icFront, setIcFront] = useState('')
+    const [icBack, setIcBack] = useState('')
     const [errors, setErrors] = useState([])
 
     const onNameChangeHandler = event => setName(event.target.value.trim())
     const onEmailChangeHandler = event => setEmail(event.target.value.trim())
-    const onMobileNumberChangeHandler = event => setMobileNumber(event.target.value.trim())
-    const onIcNumberChangeHandler = event => setIcNumber(event.target.value.trim())
+    const onMobileNumberChangeHandler = event =>
+        setMobileNumber(event.target.value.trim())
+    const onIcNumberChangeHandler = event =>
+        setIcNumber(event.target.value.trim())
     const onIcTypeIdChangeHandler = event => setIcTypeId(event.target.value)
     const onIcColorIdChangeHandler = event => setIcColorId(event.target.value)
-    const onIcExpiryDateChangeHandler = event => setIcExpiryDate(event.target.value.trim())
+    const onIcExpiryDateChangeHandler = event =>
+        setIcExpiryDate(event.target.value.trim())
     const onCountryIdChangeHandler = event => setCountryId(event.target.value)
-    const onCustomerTitleIdChangeHandler = event => setCustomerTitleId(event.target.value)
-    const onAccountCategoryIdChangeHandler = event => setAccountCategoryId(event.target.value)
-    const onBirthDateChangeHandler = event => setBirthDate(event.target.value.trim())
+    const onCustomerTitleIdChangeHandler = event =>
+        setCustomerTitleId(event.target.value)
+    const onAccountCategoryIdChangeHandler = event =>
+        setAccountCategoryId(event.target.value)
+    const onBirthDateChangeHandler = event =>
+        setBirthDate(event.target.value.trim())
+    const onIcFrontChangeHandler = event => setIcFront(event.target.files[0])
+    const onIcBackChangeHandler = event => setIcBack(event.target.files[0])
 
     const submitForm = async event => {
         event.preventDefault()
 
         // TODO: validation
+        if (icFront === '' || icFront === null) {
+            alert('No ic front provided')
+        }
+
+        if (icBack === '' || icBack === null) {
+            alert('No ic back provided')
+        }
 
         const response = await axios
             .post('/api/customers', {
@@ -52,13 +69,54 @@ const Create = () => {
                 ic_color_id: icColorId === '' ? null : icColorId,
                 ic_expiry_date: icExpiryDate,
                 country_id: countryId,
-                customer_title_id: customerTitleId === '' ? null : customerTitleId,
+                customer_title_id:
+                    customerTitleId === '' ? null : customerTitleId,
                 account_category_id: accountCategoryId,
                 birth_date: birthDate,
             })
-            .then(res => {
+            .then(async res => {
                 const id = res.data.id
-                router.push(`/customers/${id}`)
+
+                const headers = {
+                    headers: {
+                        accept: 'application/json',
+                        'Content-Type': 'multipart/form-data',
+                    },
+                }
+
+                const icFrontFormData = new FormData()
+                icFrontFormData.append('file', icFront)
+                icFrontFormData.append('relation_id', id)
+                icFrontFormData.append('relation_type_id', 1)
+                icFrontFormData.append('file_category_id', 1)
+
+                const icBackFormData = new FormData()
+                icBackFormData.append('file', icBack)
+                icBackFormData.append('relation_id', id)
+                icBackFormData.append('relation_type_id', 1)
+                icBackFormData.append('file_category_id', 1)
+
+                try {
+                    const responseIcFront = await axios.post(
+                        '/api/files',
+                        icFrontFormData,
+                        headers,
+                    )
+                    const responseIcBack = await axios.post(
+                        '/api/files',
+                        icBackFormData,
+                        headers,
+                    )
+
+                    console.log('upload ok')
+                    console.log(responseIcFront)
+                    console.log(responseIcBack)
+
+                    router.push(`/customers/${id}`)
+                } catch (e) {
+                    console.error('Failed to upload!')
+                    console.log(e)
+                }
             })
             .catch(error => {
                 console.log('error!')
@@ -178,9 +236,7 @@ const Create = () => {
                     </div>
 
                     <div className="mt-4">
-                        <Label htmlFor="icColorId">
-                            Ic Color (Optional)
-                        </Label>
+                        <Label htmlFor="icColorId">Ic Color (Optional)</Label>
 
                         <select
                             id="icColorId"
@@ -295,6 +351,30 @@ const Create = () => {
                         <InputError
                             messages={errors.birth_date}
                             className="mt-2"
+                        />
+                    </div>
+
+                    <div className="mt-4">
+                        <Label htmlFor="icFront">Ic Front</Label>
+
+                        <Input
+                            id="icFront"
+                            type="file"
+                            className="block mt-1 w-full"
+                            required
+                            onChange={onIcFrontChangeHandler}
+                        />
+                    </div>
+
+                    <div className="mt-4">
+                        <Label htmlFor="icBack">Ic Back</Label>
+
+                        <Input
+                            id="icBack"
+                            type="file"
+                            className="block mt-1 w-full"
+                            required
+                            onChange={onIcBackChangeHandler}
                         />
                     </div>
 
